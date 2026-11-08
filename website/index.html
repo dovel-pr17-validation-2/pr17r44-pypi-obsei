@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>obsei: open source, privacy-first Voice of Customer</title>
+    <meta name="description" content="Open source customer intelligence that strips PII before any LLM sees it: a self-hosted alternative to Enterpret and Unwrap for reviews, tickets and calls." />
+    <meta name="theme-color" content="#238a91" />
+    <meta name="saashub-verification" content="qfx9xgbkzrh" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://obsei.com/" />
+    <link rel="canonical" href="https://obsei.com/" />
+    <meta property="og:title" content="obsei: open source, privacy-first Voice of Customer" />
+    <meta property="og:description" content="Open source, privacy-first Voice of Customer analytics. A self-hosted alternative to Enterpret and Unwrap that strips PII from feedback before any LLM sees it." />
+    <meta property="og:site_name" content="obsei" />
+    <meta property="og:image" content="https://obsei.com/og.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="obsei: Know what customers are saying. Keep what they said private. Open source Voice of Customer." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="obsei: open source, privacy-first Voice of Customer" />
+    <meta name="twitter:description" content="Open source, privacy-first Voice of Customer analytics. A self-hosted alternative to Enterpret and Unwrap that strips PII from feedback before any LLM sees it." />
+    <meta name="twitter:image" content="https://obsei.com/og.png" />
+    <link rel="alternate" type="application/rss+xml" title="obsei blog" href="https://blog.obsei.com/rss.xml" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","@id":"https://obsei.com/#software","name":"obsei","url":"https://obsei.com/","description":"Open source, privacy-first Voice of Customer analytics. A self-hosted alternative to Enterpret and Unwrap that strips PII from feedback before any LLM sees it.","applicationCategory":"DeveloperApplication","applicationSubCategory":"Customer feedback analytics","featureList":["PII redaction at ingest","Author pseudonyms","Local multilingual classifier","Themes across languages","Theme spike alerts","MCP server for AI agents","Encrypted local store","Signed webhooks"],"keywords":"voice of customer, customer feedback analytics, PII redaction, self-hosted, open source, MCP, Enterpret alternative, Unwrap alternative","operatingSystem":"Linux, macOS, Windows","license":"https://www.apache.org/licenses/LICENSE-2.0","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"downloadUrl":"https://pypi.org/project/obsei/","installUrl":"https://docs.obsei.com/quickstart/","softwareHelp":{"@type":"CreativeWork","url":"https://docs.obsei.com/"},"codeRepository":"https://github.com/obsei/obsei","image":"https://obsei.com/og.png","screenshot":"https://obsei.com/studio-light.png","author":{"@id":"https://obsei.com/#organization"},"publisher":{"@id":"https://obsei.com/#organization"},"sameAs":["https://github.com/obsei/obsei","https://docs.obsei.com/","https://blog.obsei.com/","https://pypi.org/project/obsei/"]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"Organization","@id":"https://obsei.com/#organization","name":"obsei","url":"https://obsei.com/","logo":{"@type":"ImageObject","url":"https://obsei.com/logo.png","width":200,"height":200},"sameAs":["https://github.com/obsei/obsei","https://docs.obsei.com/","https://blog.obsei.com/","https://pypi.org/project/obsei/"]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"What is obsei?","acceptedAnswer":{"@type":"Answer","text":"obsei is an open source, self-hosted Voice of Customer pipeline. It collects customer feedback from app stores, support desks, communities, files and your own databases, removes personal data as it arrives, labels and groups it into themes across languages, and sends what matters to Slack, Jira, Linear, a warehouse or your AI agents."}},{"@type":"Question","name":"Is obsei free?","acceptedAnswer":{"@type":"Answer","text":"Yes. obsei is Apache-2.0 licensed, with no paid tier, no open-core split and no hosted version. You run it on your own laptop or servers."}},{"@type":"Question","name":"How is obsei different from Enterpret, Unwrap and other feedback analytics tools?","acceptedAnswer":{"@type":"Answer","text":"Hosted feedback tools process your customers' text on their servers. obsei runs on your infrastructure, strips PII before any model sees the text and can label feedback with a model on your machine, so customer data doesn't have to leave your network."}},{"@type":"Question","name":"Does obsei send customer feedback to an LLM?","acceptedAnswer":{"@type":"Answer","text":"Not by default. Redaction runs at ingest, the local classifier runs inside obsei, and the default egress policy blocks model and sink traffic to outside hosts. Feedback is sent to a model or service only if you configure it and allow its host."}},{"@type":"Question","name":"Which feedback sources does obsei support?","acceptedAnswer":{"@type":"Answer","text":"20 built in: the App Store, App Store Connect, Google Play, Zendesk, Freshdesk, Intercom, Gong, GitHub issues, Hacker News, Bluesky, YouTube, RSS, email (IMAP), SQL databases, CSV and JSON Lines files, file drops, webhooks, any REST API and any MCP tool. Reddit and Typeform source plugins install from the GitHub repository."}},{"@type":"Question","name":"Can AI agents like Claude, Cursor or Codex use obsei?","acceptedAnswer":{"@type":"Answer","text":"Yes. obsei includes an MCP server, listed in the MCP Registry, and plugins for Claude Code, Codex, the GitHub Copilot CLI and Gemini CLI that install from its GitHub repository. Cursor and VS Code add the server with an install button. Agents search, count and read redacted feedback with record ids to cite. Customer text is marked untrusted, and the only write, a proposed issue, waits for a person to approve it."}},{"@type":"Question","name":"How accurate is the classifier?","acceptedAnswer":{"@type":"Answer","text":"On obsei's 136 synthetic demo records in 11 languages, the default model, bge-m3-zeroshot-v2.0, scored 0.82 on intent, 0.90 on sentiment and 0.91 on team routing. The expected answers come from the demo's issue definitions, not human review. Run obsei eval on a labelled sample of your own feedback to measure it on your data and pick confidence cutoffs."}},{"@type":"Question","name":"How do I install obsei?","acceptedAnswer":{"@type":"Answer","text":"Run uv tool install \"obsei[recommended]\", then obsei init and obsei try in an empty folder; pip install \"obsei[recommended]\" works too. The first run downloads the local model once (about 1.2 GB) and needs no API keys. The container image ghcr.io/obsei/obsei has the sources and sinks but not the local classifier."}}]}</script>
+    <link rel="icon" href="/mark.svg" type="image/svg+xml" />
+    <link rel="icon" href="/logo.png" type="image/png" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="nav wrap">
+      <a class="brand" href="/"><picture><source srcset="/mark-dark.svg" media="(prefers-color-scheme: dark)" /><img src="/mark.svg" alt="" width="38" height="38" /></picture><span>obsei</span></a>
+      <nav aria-label="Main">
+        <a href="#how">How it works</a>
+        <a href="https://docs.obsei.com/">Docs</a>
+        <a href="https://docs.obsei.com/demo/" class="wide-only">Demo</a>
+        <a href="https://blog.obsei.com/">Blog</a>
+        <a href="https://github.com/obsei/obsei" class="pill">GitHub</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero wrap">
+        <div class="hero-text">
+          <a class="news" href="https://github.com/obsei/obsei/releases/tag/v1.1.1"><b>New</b> obsei 1.1.0 is out <span aria-hidden="true">→</span></a><!-- x-release-please-version -->
+          <p class="eyebrow">Open source Voice of Customer · Self-hosted · Apache-2.0</p>
+          <h1>Know what customers are saying. <span>Keep what they said private.</span></h1>
+          <p class="lead">The open source, self-hosted alternative to Enterpret and Unwrap. obsei reads reviews, tickets, calls and surveys in many languages and strips personal data before any model sees it. Nothing leaves your infrastructure unless you allow it.</p>
+          <div class="actions">
+            <a class="button" href="https://docs.obsei.com/quickstart/">Get started</a>
+            <a class="button ghost" href="https://docs.obsei.com/demo/">Live demo</a>
+          </div>
+          <pre class="install" aria-label="Install"><code><span class="prompt">$</span> uv tool install "obsei[recommended]&gt;=1.0"
+<span class="prompt">$</span> obsei init &amp;&amp; obsei try</code></pre>
+        </div>
+
+        <figure class="redact" aria-label="Example: a review before and after obsei">
+          <figcaption class="redact-cap">One review, before and after obsei</figcaption>
+          <div class="card raw">
+            <p class="card-head"><span class="tag">Arrives</span><span>App Store · ★★ · en</span></p>
+            <p>Hi, I'm <mark>Priya Sharma</mark>. Charged twice for order 4471. Call me on <mark>+91 98765 43210</mark> or <!--email_off--><mark>priya@mail.com</mark><!--/email_off--></p>
+          </div>
+          <div class="arrow" aria-hidden="true"><span></span></div>
+          <div class="card clean">
+            <p class="card-head"><span class="tag ok">Stored</span><span>author psn_7f3a…</span></p>
+            <p>Hi, I'm <b>&lt;PERSON&gt;</b>. Charged twice for order 4471. Call me on <b>&lt;PHONE&gt;</b> or <b>&lt;EMAIL&gt;</b></p>
+            <ul class="chips">
+              <li>negative</li>
+              <li>complaint</li>
+              <li>theme: Charged twice</li>
+            </ul>
+            <p class="card-note">Names use the optional local model, <code>obsei[names]</code>.</p>
+          </div>
+        </figure>
+      </section>
+
+      <ul class="stats wrap" aria-label="At a glance">
+        <li><strong>20</strong><span>sources, plus plugins</span></li>
+        <li><strong>Self-hosted</strong><span>your servers, your models</span></li>
+        <li><strong>Zero</strong><span>telemetry</span></li>
+        <li><strong>Apache-2.0</strong><span>no open core</span></li>
+      </ul>
+      <p class="proof wrap">Open source since 2020 · <a href="https://github.com/obsei/obsei">1,400+ GitHub stars</a> · Joint runner-up, <a href="https://blog.obsei.com/obsei-is-back/">RBI HARBINGER 2021</a></p>
+
+      <section class="why wrap" aria-labelledby="whyp">
+        <h2 id="whyp">Why privacy-first feedback analytics</h2>
+        <ol class="why-steps">
+          <li><strong>Feedback is personal data</strong><span>Reviews, tickets and calls carry names, emails, phone numbers and order ids.</span></li>
+          <li><strong>Most tools copy it to their cloud</strong><span>Every copy is one more breach risk and one more processor to vet.</span></li>
+          <li><strong>obsei keeps it at home</strong><span>Redacted at ingest, analysed where it lives. Share insights, not identities.</span></li>
+        </ol>
+        <p class="fine"><a href="https://docs.obsei.com/privacy/overview/">How the controls map to GDPR, DPDP, LGPD, CCPA and more →</a></p>
+      </section>
+
+      <section class="how wrap" aria-labelledby="how">
+        <h2 id="how">One pipeline, inside your walls</h2>
+        <div class="diagram">
+          <div class="lane">
+            <p class="lane-title">Collect</p>
+            <ul class="pills">
+              <li class="i i-smartphone">App Store</li><li class="i i-play">Google Play</li><li class="i i-zendesk">Zendesk</li><li class="i i-intercom">Intercom</li><li class="i i-phone-call">Gong</li>
+              <li class="i i-github">GitHub</li><li class="i i-bluesky">Bluesky</li><li class="i i-database">SQL</li><li class="i i-webhook">Webhooks</li><li class="i i-plug">+ any REST or MCP</li>
+            </ul>
+          </div>
+          <div class="link" aria-hidden="true"><span></span></div>
+          <div class="boundary">
+            <p class="boundary-title">Your infrastructure</p>
+            <ol class="steps">
+              <li><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 5 3.4 8.4 8 9 4.6-.6 8-4 8-9V6l-8-3Z"/><path d="m9 12 2 2 4-4"/></svg><strong>Redact</strong><span>PII, names optional</span></li>
+              <li><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 7h16M4 12h10M4 17h7"/><circle cx="18" cy="15" r="3"/></svg><strong>Classify</strong><span>local model or any LLM</span></li>
+              <li><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="6" cy="7" r="2.5"/><circle cx="17" cy="6" r="2.5"/><circle cx="11" cy="17" r="2.5"/><path d="M8.4 7.3 14.6 6M7.3 9.2l2.6 5.6M16 8.3l-3.7 6.6"/></svg><strong>Theme</strong><span>across languages</span></li>
+              <li><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><strong>Store</strong><span>encrypted</span></li>
+            </ol>
+          </div>
+          <div class="link" aria-hidden="true"><span></span></div>
+          <div class="lane">
+            <p class="lane-title">Act</p>
+            <ul class="pills out">
+              <li class="i i-layout-dashboard">Studio</li><li class="i i-modelcontextprotocol">AI agents via MCP</li><li class="i i-message-square">Slack</li><li class="i i-jira">Jira</li><li class="i i-linear">Linear</li><li class="i i-warehouse">Warehouse</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="ask wrap" aria-labelledby="ask">
+        <div>
+          <h2 id="ask">Your agents answer, <span>with receipts</span></h2>
+          <p class="sub">An MCP server, with plugins for Claude Code, Codex, Copilot and Gemini CLI that install from the GitHub repository. Results carry record ids your agent can cite, never author identities. Customer text is marked untrusted, and the only write, a proposed issue, waits for your approval.</p>
+          <a class="more" href="https://docs.obsei.com/guides/mcp/">Connect an agent →</a>
+        </div>
+        <figure class="chat" aria-label="Illustrative agent conversation">
+          <figcaption class="chat-cap">Illustrative conversation</figcaption>
+          <p class="q">Why are Japanese users unhappy this week?</p>
+          <div class="a">
+            <p>Mostly <b>login failing after the 2.3 update</b>: 14 reviews, up from 2. Double charges are second.</p>
+            <ul class="chips">
+              <li>rec_3f9a</li><li>rec_b210</li><li>rec_77c4</li>
+            </ul>
+          </div>
+        </figure>
+      </section>
+
+      <section class="ask flip wrap" aria-labelledby="route">
+        <div>
+          <h2 id="route">Act on it, <span>when the model is sure</span></h2>
+          <p class="sub">Ordered routes on labels and confidence. Unsure answers go to a person, not to your issue tracker.</p>
+          <a class="more" href="https://docs.obsei.com/guides/routing/">See routing →</a>
+        </div>
+        <figure class="routes" aria-label="Example routes from the decision-routing example">
+          <figcaption class="chat-cap">Example routes</figcaption>
+          <ol>
+            <li class="unsure"><span class="cond"><i>model unsure</i></span><span class="to">Human review</span></li>
+            <li><span class="cond"><i>bug</i><i>confidence ≥ 0.8</i><i>urgent</i></span><span class="to">Jira + on-call</span></li>
+            <li><span class="cond"><i>billing</i></span><span class="to">Billing channel</span></li>
+            <li><span class="cond"><i>everything else</i></span><span class="to">Warehouse</span></li>
+          </ol>
+        </figure>
+      </section>
+
+      <section class="studio wrap" aria-labelledby="studio">
+        <h2 id="studio">Every theme, across languages, in one view</h2>
+        <figure class="shot">
+          <picture>
+            <source srcset="/studio-dark.png" media="(prefers-color-scheme: dark)" />
+            <img src="/studio-light.png" width="1280" height="860" loading="lazy" alt="obsei Studio showing themes, a knowledge graph of sources, languages and intents, and feedback in eleven languages" />
+          </picture>
+          <figcaption><a href="https://docs.obsei.com/demo/">Open the live demo</a> · synthetic feedback in eleven languages</figcaption>
+        </figure>
+      </section>
+
+      <section class="features wrap" aria-labelledby="why">
+        <h2 id="why">Built for teams that can't ship customer data to someone else's cloud</h2>
+        <div class="grid">
+          <article><h3>A local model by default</h3><p>Labels with confidence from a multilingual model on your CPU, or any OpenAI-compatible LLM or decision model. <code>obsei eval</code> measures it on your data.</p></article>
+          <article><h3>Alerts on themes</h3><p>Spikes, new themes, weekly digests and pipeline health, sent to Slack, a signed webhook, or Teams, Telegram and email with <code>obsei[notify]</code>.</p></article>
+          <article><h3>Setup without YAML</h3><p><code>obsei add</code> asks for each field and links to where you get the key; <code>obsei check</code> fetches from each source and checks sink credentials.</p></article>
+          <article><h3>Privacy by region</h3><p>Emails, phones, cards and IBANs, plus national IDs from Aadhaar and PAN to SSN, CPF and NHS, checksum-validated where the format allows.</p></article>
+          <article><h3>k-anonymous views</h3><p>Themes from fewer than k people are hidden, in Studio, exports and the MCP server.</p></article>
+          <article><h3>Erasure and audit</h3><p>Forget by author, source or age, export, and an audit log.</p></article>
+          <article><h3>Enterprise access</h3><p>Roles, sign-in through an SSO proxy such as oauth2-proxy or Cloudflare Access, signed webhooks and a container image.</p></article>
+          <article><h3>Themes across languages</h3><p>The same issue raised in English, Japanese and Portuguese becomes one theme, with trends and near-duplicates.</p></article>
+          <article><h3>Plugins</h3><p>Add a source, enricher or sink as a small Python package.</p></article>
+        </div>
+      </section>
+
+      <section class="faq wrap" aria-labelledby="faq">
+        <h2 id="faq">Frequently asked questions</h2>
+        <div class="faq-list">
+          <details><summary><h3>What is obsei?</h3></summary><p>obsei is an open source, self-hosted Voice of Customer pipeline. It collects customer feedback from app stores, support desks, communities, files and your own databases, removes personal data as it arrives, labels and groups it into themes across languages, and sends what matters to Slack, Jira, Linear, a warehouse or your AI agents.</p></details>
+          <details><summary><h3>Is obsei free?</h3></summary><p>Yes. obsei is Apache-2.0 licensed, with no paid tier, no open-core split and no hosted version. You run it on your own laptop or servers.</p></details>
+          <details><summary><h3>How is obsei different from Enterpret, Unwrap and other feedback analytics tools?</h3></summary><p>Hosted feedback tools process your customers&#x27; text on their servers. obsei runs on your infrastructure, strips PII before any model sees the text and can label feedback with a model on your machine, so customer data doesn&#x27;t have to leave your network.</p></details>
+          <details><summary><h3>Does obsei send customer feedback to an LLM?</h3></summary><p>Not by default. Redaction runs at ingest, the local classifier runs inside obsei, and the default egress policy blocks model and sink traffic to outside hosts. Feedback is sent to a model or service only if you configure it and allow its host.</p></details>
+          <details><summary><h3>Which feedback sources does obsei support?</h3></summary><p>20 built in: the App Store, App Store Connect, Google Play, Zendesk, Freshdesk, Intercom, Gong, GitHub issues, Hacker News, Bluesky, YouTube, RSS, email (IMAP), SQL databases, CSV and JSON Lines files, file drops, webhooks, any REST API and any MCP tool. Reddit and Typeform source plugins install from the GitHub repository.</p></details>
+          <details><summary><h3>Can AI agents like Claude, Cursor or Codex use obsei?</h3></summary><p>Yes. obsei includes an MCP server, listed in the MCP Registry, and plugins for Claude Code, Codex, the GitHub Copilot CLI and Gemini CLI that install from its GitHub repository. Cursor and VS Code add the server with an install button. Agents search, count and read redacted feedback with record ids to cite. Customer text is marked untrusted, and the only write, a proposed issue, waits for a person to approve it.</p></details>
+          <details><summary><h3>How accurate is the classifier?</h3></summary><p>On obsei&#x27;s 136 synthetic demo records in 11 languages, the default model, bge-m3-zeroshot-v2.0, scored 0.82 on intent, 0.90 on sentiment and 0.91 on team routing. The expected answers come from the demo&#x27;s issue definitions, not human review. Run obsei eval on a labelled sample of your own feedback to measure it on your data and pick confidence cutoffs.</p></details>
+          <details><summary><h3>How do I install obsei?</h3></summary><p>Run uv tool install &quot;obsei[recommended]&quot;, then obsei init and obsei try in an empty folder; pip install &quot;obsei[recommended]&quot; works too. The first run downloads the local model once (about 1.2 GB) and needs no API keys. The container image ghcr.io/obsei/obsei has the sources and sinks but not the local classifier.</p></details>
+        </div>
+      </section>
+
+      <section class="cta wrap">
+        <h2>Try it on your machine</h2>
+        <p>Sample feedback in ten languages, no API keys. The first run downloads a local model once (about 1.2 GB).</p>
+        <div class="actions">
+          <a class="button light" href="https://docs.obsei.com/quickstart/">Read the quickstart</a>
+          <a class="button outline" href="https://github.com/obsei/obsei">Star on GitHub</a>
+        </div>
+      </section>
+    </main>
+
+    <footer class="wrap">
+      <span>© obsei contributors · Apache-2.0</span>
+      <nav aria-label="Footer">
+        <a href="https://docs.obsei.com/">Docs</a>
+        <a href="https://blog.obsei.com/">Blog</a>
+        <a href="#faq">FAQ</a>
+        <a href="https://github.com/obsei/obsei/discussions">Discussions</a>
+        <a href="https://pypi.org/project/obsei/">PyPI</a>
+        <a href="https://github.com/obsei/obsei/blob/master/SECURITY.md">Security</a>
+      </nav>
+    </footer>
+  </body>
+</html>

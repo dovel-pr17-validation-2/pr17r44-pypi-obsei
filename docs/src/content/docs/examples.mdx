@@ -1,0 +1,232 @@
+---
+title: Examples
+description: Complete obsei.yaml files for common Voice of Customer setups.
+---
+
+import { LinkCard } from "@astrojs/starlight/components";
+import Pipeline from "../../components/Pipeline.astro";
+
+Each example is a complete, commented `obsei.yaml` in the
+[`examples/`](https://github.com/obsei/obsei/tree/master/examples) folder. The header of each file
+lists the extras to install, the environment variables it reads and how to run it. Every example
+is loaded with the real config loader in CI, so the keys match the current release.
+
+```bash
+git clone https://github.com/obsei/obsei && cd obsei
+obsei init examples --offline                      # secrets in examples/.obsei/secrets.env
+obsei try -c examples/social-listening.yaml        # preview redacted records; nothing stored or sent
+obsei run -c examples/social-listening.yaml
+```
+
+Copy a file to `obsei.yaml` in your project and replace the placeholder ids, hosts and names.
+Secrets are read from environment variables, or from `.obsei/secrets.env` next to the config.
+
+## App reviews in six countries
+
+App Store reviews from the US, UK, India, Brazil, Japan and Germany plus Google Play, classified
+by a local Ollama model, with negative reviews posted to Slack and multilingual themes.
+
+<Pipeline compact sources={["App Store ×6 countries", "Google Play"]} steps={["Redact", "Classify", "Theme", "Store"]} outputs={["Slack"]} />
+
+Extras: `google,embeddings`
+
+<LinkCard
+  title="app-reviews-multi-country.yaml"
+  href="https://github.com/obsei/obsei/blob/master/examples/app-reviews-multi-country.yaml"
+/>
+
+## Support tickets with a model cascade
+
+Zendesk, Freshdesk and Intercom (EU region) tickets labelled by a small model; low-confidence
+results go to a larger in-house model. Bugs become Jira issues, feature requests Linear issues,
+and everything is exported to Parquet.
+
+<Pipeline compact sources={["Zendesk", "Freshdesk", "Intercom"]} steps={["Redact", "Classify", "Store"]} outputs={["Jira", "Linear", "Parquet"]} />
+
+<LinkCard
+  title="support-tickets.yaml"
+  href="https://github.com/obsei/obsei/blob/master/examples/support-tickets.yaml"
+/>
+
+## Multilingual ticket routing with a decision model
+
+Zendesk and Freshdesk tickets in any language, labelled on a CPU by Julia-1, a 144M decision model
+served by llama.cpp: spam is filtered out first, then one request per ticket answers sentiment,
+intent (with descriptions), an urgency score and a yes/no refund question. Answers below their
+cutoff go to a local Ollama chat model. Ordered [routes](/guides/routing/) then pick one destination
+per ticket: uncertain tickets go to a review channel, confident urgent bugs open a Jira issue and
+page on-call, billing and refund requests go to the billing channel, and the rest lands in Parquet.
+A CSV of eight sample tickets in seven languages lets you try it locally:
+`obsei try -c examples/decision-routing.yaml -p sample --enrich --limit 8`.
+
+<Pipeline compact sources={["Zendesk", "Freshdesk"]} steps={["Redact", "Classify", "Store"]} outputs={["Jira", "Slack ×3", "Parquet"]} />
+
+<LinkCard
+  title="decision-routing.yaml"
+  href="https://github.com/obsei/obsei/blob/master/examples/decision-routing.yaml"
+/>
+
+## Social listening
+
+Bluesky (English and Portuguese), Hacker News, YouTube comments, a forum RSS feed and a Mastodon
+hashtag through the REST source, delivered to an internal service as signed webhooks.
+
+<Pipeline compact sources={["Bluesky", "Hacker News", "YouTube", "RSS", "Mastodon (REST)"]} steps={["Redact", "Classify", "Store"]} outputs={["Signed webhook"]} />
+
+<LinkCard
+  title="social-listening.yaml"
+  href="https://github.com/obsei/obsei/blob/master/examples/social-listening.yaml"
+/>
+
+## Trustpilot reviews over REST
+
+Trustpilot Business reviews through the generic REST source, with the API key in a secret
+header, star ratings mapped and 1-2 star reviews posted to Slack. Field names follow the public
+business-unit reviews endpoint; verify them against your account's API version.
+
+<Pipeline compact sources={["Trustpilot (REST)"]} steps={["Redact", "Classify", "Store"]} outputs={["Slack"]} />
+
+<LinkCard
+  title="trustpilot-rest.yaml"
+  href="https://github.com/obsei/obsei/blob/master/examples/trustpilot-rest.yaml"
+/>
+
+## CRM and ITSM over REST
+
+HubSpot tickets (cursor paging on `paging.next.after`) and ServiceNow incidents (Table API with
+`sysparm_*` parameters), classified with custom fields; bugs and outages go to Jira Data Center.
+
+<Pipeline compact sources={["HubSpot (REST)", "ServiceNow (REST)"]} steps={["Redact", "Classify", "Store"]} outputs={["Jira", "Parquet"]} />
+
+<LinkCard
+  title="crm-and-itsm-rest.yaml"
+  href="https://github.com/obsei/obsei/blob/master/examples/crm-and-itsm-rest.yaml"
+/>
+
+## More review sites and wikis
+
+Four smaller recipes, each one source with the local classifier:
+
+- **Atlassian Marketplace** reviews of your app through the public Marketplace API, no key; 1-2
+  star reviews go to Slack.
+- **Google Business Profile** reviews of the locations you manage, with an OAuth token (beta: the
+  API needs approved access, and the token lasts an hour).
+- **Confluence Cloud** pages of a space, such as customer interview notes, with an API token.
+- **WordPress.org** reviews of your plugin from its public review feed.
+
+<Pipeline compact sources={["Atlassian Marketplace", "Google Business Profile", "Confluence", "WordPress.org"]} steps={["Redact", "Classify", "Store"]} outputs={["Slack", "Parquet"]} />
+
+<LinkCard
+  title="atlassian-marketplace-reviews.yaml"
+  href="https://github.com/obsei/obsei/blob/master/examples/atlassian-marketplace-reviews.yaml"
+/>
+<LinkCard
+  title="google-business-reviews.yaml"
+  href="https://github.com/obsei/obsei/blob/master/examples/google-business-reviews.yaml"
+/>
+<LinkCard
+  title="confluence-pages.yaml"
+  href="https://github.com/obsei/obsei/blob/master/examples/confluence-pages.yaml"
+/>
+<LinkCard
+  title="wordpress-plugin-reviews.yaml"
+  href="https://github.com/obsei/obsei/blob/master/examples/wordpress-plugin-reviews.yaml"
+/>
+
+Telegram, Discord and email notifications need no recipe: the
+[`notify` sink](/guides/sinks/#notifications) sends to them and 100+ other services.
+
+## Warehouse round trip
+
+NPS responses read incrementally from Postgres, Snowflake or BigQuery, classified, and written
+back to a warehouse table without author pseudonyms.
+
+<Pipeline compact sources={["SQL warehouse"]} steps={["Redact", "Classify", "Store"]} outputs={["SQL warehouse"]} />
+
+Extras: `sql` plus your database driver
+
+<LinkCard
+  title="warehouse.yaml"
+  href="https://github.com/obsei/obsei/blob/master/examples/warehouse.yaml"
+/>
+
+## Mailbox and file drops
+
+A support mailbox over IMAP and a drop folder for exported CSV and JSON Lines survey and NPS
+files, with churn risks posted to Slack and a Parquet export.
+
+<Pipeline compact sources={["IMAP mailbox", "File drop"]} steps={["Redact", "Classify", "Store"]} outputs={["Slack", "Parquet"]} />
+
+<LinkCard
+  title="email-and-files.yaml"
+  href="https://github.com/obsei/obsei/blob/master/examples/email-and-files.yaml"
+/>
+
+## Enterprise, air-gapped
+
+vLLM with an Azure OpenAI fallback behind a private egress allowlist, person-name redaction from a
+local model, regional redaction, local multilingual embeddings, `k_anonymity: 10`, `obsei serve`
+behind an SSO proxy with group-to-role mapping, API tokens, `allowed_hosts` and a retention job.
+
+<Pipeline compact sources={["GitHub Enterprise", "Webhooks", "SQL"]} steps={["Redact", "Classify", "Theme", "Store"]} outputs={["Jira"]} />
+· extras `mcp,names,embeddings,sql`
+
+<LinkCard
+  title="enterprise-air-gapped.yaml"
+  href="https://github.com/obsei/obsei/blob/master/examples/enterprise-air-gapped.yaml"
+/>
+
+## India, Brazil and Japan
+
+One pipeline per market with market-specific intents, India, Latin America and Asia-Pacific
+redaction plus name redaction, multilingual themes labelled in one language, and a Slack channel
+per team.
+
+<Pipeline compact sources={["App Store", "Freshdesk", "Intercom", "Bluesky"]} steps={["Redact", "Classify", "Theme", "Store"]} outputs={["Slack"]} />
+· extras `names,embeddings`
+
+<LinkCard
+  title="regional-india-brazil-japan.yaml"
+  href="https://github.com/obsei/obsei/blob/master/examples/regional-india-brazil-japan.yaml"
+/>
+
+## GitHub Actions
+
+A daily workflow: App Store and Google Play reviews, classified, turned into GitHub issues and
+Slack messages, with the encrypted database kept in the Actions cache. See
+[GitHub Action](/guides/github-action/).
+
+<Pipeline compact sources={["App Store", "Google Play"]} steps={["Redact", "Classify", "Store"]} outputs={["GitHub issues", "Slack"]} />
+
+<LinkCard
+  title="examples/github-actions"
+  href="https://github.com/obsei/obsei/tree/master/examples/github-actions"
+/>
+
+## With plugins
+
+These use [plugins](/reference/plugins/) that are installed separately and allowed with
+`plugins:` in the file.
+
+### Surveys from Typeform
+
+Typeform survey responses plus a CSV NPS export, classified and grouped into themes, exported to
+Parquet.
+
+<Pipeline compact sources={["Typeform", "NPS CSV"]} steps={["Redact", "Classify", "Theme", "Store"]} outputs={["Parquet"]} />
+
+<LinkCard
+  title="surveys-typeform.yaml"
+  href="https://github.com/obsei/obsei/blob/master/examples/surveys-typeform.yaml"
+/>
+
+### Alerts in Microsoft Teams
+
+Negative App Store and Google Play reviews posted to a Teams channel.
+
+<Pipeline compact sources={["App Store", "Google Play"]} steps={["Redact", "Classify", "Store"]} outputs={["Microsoft Teams"]} />
+
+<LinkCard
+  title="alerts-teams.yaml"
+  href="https://github.com/obsei/obsei/blob/master/examples/alerts-teams.yaml"
+/>

@@ -1,0 +1,14 @@
+{
+  "name": "obsei",
+  "owner": { "name": "obsei", "url": "https://obsei.com" },
+  "metadata": {
+    "description": "obsei plugins: privacy-first, self-hosted Voice of Customer for AI agents."
+  },
+  "plugins": [
+    {
+      "name": "obsei",
+      "source": "./integrations/claude/obsei",
+      "description": "Privacy-first Voice of Customer: query self-hosted customer feedback with cited evidence."
+    }
+  ]
+}

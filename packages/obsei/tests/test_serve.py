@@ -1,0 +1,186 @@
+import base64
+import hashlib
+import hmac
+import json
+import time
+from typing import Any
+
+import pytest
+from pydantic import JsonValue
+from starlette.testclient import TestClient
+
+from obsei.access import HostAllowlist
+from obsei.config import ObseiConfig, build_context
+from obsei.core.record import Record
+from obsei.serve import create_app
+from obsei.sources import webhook
+from obsei.sources._common import map_item
+from obsei.store import Store
+
+SECRET = "hook-secret-0123456789"
+API_TOKEN = "api-token-0123456789"
+LOCAL = "http://127.0.0.1:8765"
+
+
+def config() -> ObseiConfig:
+    return ObseiConfig.model_validate(
+        {
+            "pipelines": [
+                {
+                    "name": "support",
+                    "sources": [
+                        {
+                            "key": "tickets",
+                            "type": "webhook",
+                            "config": {
+                                "secret_env": "HOOK_SECRET",
+                                "items_path": "tickets",
+                                "fields": {
+                                    "text": "body",
+                                    "id": "id",
+                                    "lang": "locale",
+                                    "created_at": "at",
+                                },
+                            },
+                        }
+                    ],
+                }
+            ]
+        }
+    )
+
+
+@pytest.fixture
+def store() -> Store:
+    return Store(allow_unencrypted=True)
+
+
+@pytest.fixture
+def client(monkeypatch: pytest.MonkeyPatch, store: Store) -> TestClient:
+    monkeypatch.setenv("HOOK_SECRET", SECRET)
+    cfg = config()
+    app = create_app(cfg, build_context(cfg), store, token=API_TOKEN)
+    return TestClient(app, base_url=LOCAL)
+
+
+def signed(body: bytes, stamp: int | None = None) -> dict[str, str]:
+    sent = str(int(time.time()) if stamp is None else stamp)
+    digest = hmac.new(SECRET.encode(), f"evt_1.{sent}.".encode() + body, hashlib.sha256).digest()
+    return {
+        "webhook-id": "evt_1",
+        "webhook-timestamp": sent,
+        "webhook-signature": f"v1,{base64.b64encode(digest).decode()}",
+        "Content-Type": "application/json",
+    }
+
+
+def test_health_is_public(client: TestClient) -> None:
+    assert client.get("/healthz").json() == {"status": "ok"}
+
+
+def test_ingest_verifies_signature_and_redacts(client: TestClient, store: Store) -> None:
+    body = json.dumps(
+        {
+            "tickets": [
+                {
+                    "id": "t1",
+                    "at": "2026-09-01T08:00:00+02:00",
+                    "body": "Erreur de paiement, écrivez à paul@example.fr",
+                    "locale": "fr",
+                }
+            ]
+        }
+    ).encode()
+    assert client.post("/ingest/support/tickets", content=body).status_code == 401
+    accepted = client.post("/ingest/support/tickets", content=body, headers=signed(body))
+    assert accepted.status_code == 202
+    assert accepted.json() == {"received": 1, "skipped": 0, "stored": 1}
+    again = client.post("/ingest/support/tickets", content=body, headers=signed(body))
+    assert again.json() == {"received": 1, "skipped": 0, "stored": 0}
+    (stored,) = store.iter_records()
+    assert stored.text == "Erreur de paiement, écrivez à <EMAIL>"
+    assert (
+        client.post("/ingest/support/nope", content=body, headers=signed(body)).status_code == 404
+    )
+    bad = {**signed(body), "webhook-signature": "v1,ü".encode("latin-1")}
+    assert client.post("/ingest/support/tickets", content=body, headers=bad).status_code == 401  # type: ignore[arg-type]
+
+
+def test_ingest_refuses_replays_and_untimestamped_signatures(client: TestClient) -> None:
+    body = json.dumps({"tickets": [{"id": "t1", "body": "Slow checkout"}]}).encode()
+    stale = signed(body, stamp=int(time.time()) - 600)
+    assert client.post("/ingest/support/tickets", content=body, headers=stale).status_code == 401
+    body_only = hmac.new(SECRET.encode(), body, hashlib.sha256).hexdigest()
+    untimed = {"X-Hub-Signature-256": f"sha256={body_only}"}
+    assert client.post("/ingest/support/tickets", content=body, headers=untimed).status_code == 401
+    wrong_time = {**signed(body), "webhook-timestamp": str(int(time.time()) + 1)}
+    assert (
+        client.post("/ingest/support/tickets", content=body, headers=wrong_time).status_code == 401
+    )
+
+
+def test_root_redirects_to_studio_without_a_token(client: TestClient) -> None:
+    response = client.get("/", follow_redirects=False)
+    assert response.status_code == 307
+    assert response.headers["location"] == "/studio/"
+
+
+def test_mcp_requires_bearer_token(client: TestClient) -> None:
+    assert client.post("/mcp", json={}).status_code == 401
+
+
+def test_ingest_is_atomic_per_request(
+    client: TestClient, store: Store, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def failing_map_item(row: JsonValue, *args: Any, **kwargs: Any) -> Record | None:
+        if isinstance(row, dict) and row.get("id") == "x":
+            raise ValueError("unmappable")
+        return map_item(row, *args, **kwargs)
+
+    monkeypatch.setattr(webhook, "map_item", failing_map_item)
+    items = [{"id": "ok", "body": "fine"}, {"id": "x", "body": "late"}]
+    bad = json.dumps({"tickets": items}).encode()
+    rejected = client.post("/ingest/support/tickets", content=bad, headers=signed(bad))
+    assert rejected.status_code == 400
+    assert "item 1" in rejected.json()["error"]
+    good = json.dumps({"tickets": [{"id": "t2", "body": "Works now"}, {"id": "t3"}]}).encode()
+    accepted = client.post("/ingest/support/tickets", content=good, headers=signed(good))
+    assert accepted.json() == {"received": 2, "skipped": 1, "stored": 1}
+    assert [r.source.native_id for r in store.iter_records()] == ["t2"]
+
+
+def test_every_route_rejects_unknown_hosts(store: Store, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("HOOK_SECRET", SECRET)
+    cfg = config()
+    local = TestClient(create_app(cfg, build_context(cfg), store, token=None), base_url=LOCAL)
+    assert local.get("/api/snapshot").status_code == 200
+    assert local.get("/healthz", headers={"Host": "localhost:8765"}).status_code == 200
+    assert local.get("/healthz", headers={"Host": "[::1]:8765"}).status_code == 200
+    for path in ("/api/snapshot", "/healthz", "/studio/", "/mcp"):
+        rebound = local.get(path, headers={"Host": "attacker.example:8765"})
+        assert rebound.status_code == 421, path
+    cross_site = local.post(
+        "/api/ask", json={"question": "x"}, headers={"Origin": "https://attacker.example"}
+    )
+    assert cross_site.status_code == 421
+    assert local.get("/healthz", headers={"Origin": "null"}).status_code == 421
+
+    cfg.access.allowed_hosts = ["voc.example.com", "*.corp.example"]
+    named = TestClient(create_app(cfg, build_context(cfg), store, token=None), base_url=LOCAL)
+    for host in ("voc.example.com", "obsei.corp.example:443"):
+        assert named.get("/healthz", headers={"Host": host}).status_code == 200
+    assert named.get("/healthz", headers={"Host": "corp.example.evil"}).status_code == 421
+
+
+def test_bind_address_is_an_allowed_host(store: Store, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("HOOK_SECRET", SECRET)
+    cfg = config()
+    app = create_app(cfg, build_context(cfg), store, token=API_TOKEN, host="10.1.2.3")
+    client = TestClient(app, base_url="http://10.1.2.3:8765")
+    assert client.get("/healthz").status_code == 200
+    assert client.get("/healthz", headers={"Host": "rebound.example"}).status_code == 421
+    everywhere = TestClient(
+        create_app(cfg, build_context(cfg), store, token=API_TOKEN, host="0.0.0.0")  # noqa: S104
+    )
+    assert everywhere.get("/healthz").status_code == 200
+    assert HostAllowlist("fd00::1", []).allows("[fd00::1]:8765")

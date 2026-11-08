@@ -1,0 +1,9 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it using this metadata."
+title: "obsei: open source, privacy-first Voice of Customer analytics"
+authors:
+  - family-names: Pagaria
+    given-names: Lalit
+license: Apache-2.0
+repository-code: "https://github.com/obsei/obsei"
+url: "https://obsei.com"

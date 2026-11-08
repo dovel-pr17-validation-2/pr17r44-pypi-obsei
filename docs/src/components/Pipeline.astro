@@ -1,0 +1,293 @@
+---
+const defaultSources = ["App Store", "Google Play", "Zendesk", "Intercom", "Gong", "GitHub", "Bluesky", "SQL", "Webhooks", "+ any REST or MCP"];
+const defaultOutputs = ["Studio", "AI agents via MCP", "Slack", "Jira", "Linear", "Warehouse"];
+const allSteps = [
+  {
+    name: "Redact",
+    note: "PII, names optional",
+    href: "/privacy/overview/",
+    icon: '<path d="M12 3 4 6v6c0 5 3.4 8.4 8 9 4.6-.6 8-4 8-9V6l-8-3Z"/><path d="m9 12 2 2 4-4"/>',
+  },
+  {
+    name: "Classify",
+    note: "local model or any LLM",
+    href: "/guides/models/",
+    icon: '<path d="M4 7h16M4 12h10M4 17h7"/><circle cx="18" cy="15" r="3"/>',
+  },
+  {
+    name: "Theme",
+    note: "across languages",
+    href: "/guides/themes/",
+    icon: '<circle cx="6" cy="7" r="2.5"/><circle cx="17" cy="6" r="2.5"/><circle cx="11" cy="17" r="2.5"/><path d="M8.4 7.3 14.6 6M7.3 9.2l2.6 5.6M16 8.3l-3.7 6.6"/>',
+  },
+  {
+    name: "Store",
+    note: "encrypted",
+    href: "/configuration/",
+    icon: '<rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>',
+  },
+];
+
+const icons: [string, string][] = [
+  ["App Store", "smartphone"], ["Google Play", "play"], ["Google Business", "map-pin"], ["Zendesk", "zendesk"],
+  ["Freshdesk", "headset"], ["Intercom", "intercom"], ["Gong", "phone-call"], ["GitHub", "github"],
+  ["Bluesky", "bluesky"], ["Hacker News", "ycombinator"], ["YouTube", "video"], ["RSS", "rss"],
+  ["Mastodon", "mastodon"], ["Trustpilot", "star"], ["HubSpot", "hubspot"], ["ServiceNow", "ticket"],
+  ["Atlassian", "atlassian"], ["Confluence", "confluence"], ["WordPress", "wordpress"], ["Typeform", "clipboard-list"],
+  ["NPS CSV", "file-spreadsheet"], ["IMAP", "mail"], ["File drop", "folder-input"], ["SQL", "database"],
+  ["Webhook", "webhook"], ["Signed webhook", "webhook"], ["+ any REST", "plug"], ["Studio", "layout-dashboard"],
+  ["AI agents", "modelcontextprotocol"], ["Slack", "message-square"], ["Jira", "jira"], ["Linear", "linear"],
+  ["Warehouse", "warehouse"], ["Parquet", "apacheparquet"], ["Microsoft Teams", "users"],
+];
+const icon = (label: string) => icons.find(([prefix]) => label.startsWith(prefix))?.[1];
+
+type StepName = "Redact" | "Classify" | "Theme" | "Store";
+interface Props {
+  sources?: string[];
+  outputs?: string[];
+  steps?: StepName[];
+  compact?: boolean;
+}
+const { sources = defaultSources, outputs = defaultOutputs, steps: only, compact = false } = Astro.props;
+const steps = only ? allSteps.filter((s) => only.includes(s.name as StepName)) : allSteps;
+const label = `obsei pipeline: ${sources.join(", ")} flow into your infrastructure (${steps.map((s) => s.name.toLowerCase()).join(", ")}), then reach ${outputs.join(", ")}`;
+---
+
+<figure class:list={["pipeline", "not-content", { compact }]} aria-label={label}>
+  <div class="flow">
+  <div class="lane">
+    <p class="title"><a href="/guides/sources/">{compact ? "Sources" : "Collect"}</a></p>
+    <ul class="pills">{sources.map((s) => <li>{icon(s) && <span class={`i i-${icon(s)}`} />}{s}</li>)}</ul>
+  </div>
+  <div class="link" aria-hidden="true"><span></span></div>
+  <div class="boundary">
+    <p class="title">Your infrastructure</p>
+    <ol class="steps" data-steps={steps.length} style={`--steps: ${steps.length}`}>
+      {steps.map((s) => (
+        <li>
+          <a href={s.href}>
+            <svg aria-hidden="true" viewBox="0 0 24 24" set:html={s.icon} />
+            <strong>{s.name}</strong>
+            <span class="sr-only">: </span>
+            <span class="note">{s.note}</span>
+          </a>
+        </li>
+      ))}
+    </ol>
+  </div>
+  <div class="link" aria-hidden="true"><span></span></div>
+  <div class="lane">
+    <p class="title"><a href="/guides/sinks/">{compact ? "Sinks" : "Act"}</a></p>
+    <ul class="pills out">{outputs.map((s) => <li>{icon(s) && <span class={`i i-${icon(s)}`} />}{s}</li>)}</ul>
+  </div>
+  </div>
+</figure>
+
+<style>
+  .compact {
+    margin: 1rem 0 0.75rem;
+  }
+  .compact .note,
+  .compact .boundary .title {
+    display: none;
+  }
+  .compact .boundary {
+    padding: 0.6rem;
+  }
+  .compact .steps a {
+    padding: 0.55rem 0.3rem;
+  }
+  .compact .steps svg {
+    width: 1.4rem;
+    height: 1.4rem;
+  }
+  .compact .flow {
+    grid-template-columns: minmax(0, 1fr) 28px minmax(0, 1.6fr) 28px minmax(0, 0.8fr);
+  }
+  .compact .steps strong {
+    font-size: 0.85rem;
+  }
+
+  .pipeline {
+    container-type: inline-size;
+    margin: 2rem 0;
+  }
+  .flow {
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) 44px minmax(0, 1.5fr) 44px minmax(0, 0.9fr);
+    align-items: center;
+  }
+  .title {
+    margin: 0 0 0.75rem;
+    text-align: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--sl-color-gray-3);
+  }
+  .title a {
+    color: inherit;
+    text-decoration: none;
+  }
+  .title a:hover {
+    color: var(--sl-color-accent-high);
+  }
+  .pills {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.45rem;
+  }
+  .pills li {
+    margin: 0;
+    background: var(--sl-color-black);
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 999px;
+    padding: 0.2rem 0.7rem;
+    font-size: 0.8rem;
+    white-space: nowrap;
+  }
+  .pills.out li {
+    border-color: var(--sl-color-accent);
+    color: var(--sl-color-accent-high);
+    font-weight: 600;
+  }
+  .boundary {
+    border: 2px dashed var(--sl-color-accent);
+    border-radius: 1.4rem;
+    padding: 1.1rem 1rem 1.25rem;
+    background: var(--sl-color-accent-low);
+  }
+  .boundary .title {
+    color: var(--sl-color-accent-high);
+  }
+  .steps {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(var(--steps, 4), minmax(0, 1fr));
+    gap: 0.6rem;
+  }
+  .steps li {
+    margin: 0;
+    position: relative;
+  }
+  .steps li + li::before {
+    content: "";
+    position: absolute;
+    left: -0.6rem;
+    top: 50%;
+    width: 0.6rem;
+    height: 2px;
+    background: var(--sl-color-accent);
+  }
+  .steps a {
+    height: 100%;
+    display: grid;
+    justify-items: center;
+    align-content: start;
+    text-align: center;
+    gap: 0.2rem;
+    padding: 0.85rem 0.4rem;
+    border-radius: 0.9rem;
+    background: var(--sl-color-black);
+    border: 1px solid var(--sl-color-gray-5);
+    color: var(--sl-color-white);
+    text-decoration: none;
+    transition: border-color 0.15s, transform 0.15s;
+  }
+  .steps a:hover {
+    border-color: var(--sl-color-accent);
+    transform: translateY(-2px);
+  }
+  .steps svg {
+    width: 1.8rem;
+    height: 1.8rem;
+    fill: none;
+    stroke: var(--sl-color-accent);
+    stroke-width: 1.7;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .steps strong {
+    font-size: 0.95rem;
+  }
+  .note {
+    font-size: 0.75rem;
+    line-height: 1.3;
+    color: var(--sl-color-gray-3);
+  }
+  .link {
+    height: 2px;
+    background: var(--sl-color-gray-5);
+    position: relative;
+    overflow: hidden;
+  }
+  .link span {
+    position: absolute;
+    top: -2px;
+    left: 0;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--sl-color-accent);
+    animation: flow 2.4s linear infinite;
+  }
+  @keyframes flow {
+    to {
+      transform: translateX(44px);
+    }
+  }
+  @keyframes flow-down {
+    to {
+      transform: translateY(32px);
+    }
+  }
+  @container (max-width: 52rem) {
+    .pipeline:not(.compact) .flow {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .pipeline:not(.compact) .link {
+      width: 2px;
+      height: 32px;
+      justify-self: center;
+    }
+    .pipeline:not(.compact) .link span {
+      animation-name: flow-down;
+    }
+  }
+  @container (max-width: 34rem) {
+    .compact .flow {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .compact .link {
+      width: 2px;
+      height: 32px;
+      justify-self: center;
+    }
+    .compact .link span {
+      animation-name: flow-down;
+    }
+  }
+  @container (max-width: 30rem) {
+    .steps[data-steps="4"] {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .steps[data-steps="4"] li + li::before {
+      display: none;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .link span {
+      animation: none;
+    }
+    .steps a {
+      transition: none;
+    }
+  }
+</style>

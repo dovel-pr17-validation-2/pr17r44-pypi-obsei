@@ -1,0 +1,108 @@
+# Builds the docs site and the Studio bundle. Move to .github/workflows/ to enable.
+name: Web
+
+on:
+  pull_request:
+    paths:
+      - "blog/**"
+      - "docs/**"
+      - "studio/**"
+      - "website/**"
+      - "packages/obsei/src/obsei/serve.py"
+      - "packages/obsei/src/obsei/studio.py"
+      - "packages/obsei/src/obsei/studio_static/**"
+      - "packages/obsei/tests/test_studio_browser.py"
+      - ".github/workflows/web.yml"
+  push:
+    branches: [master]
+    paths:
+      - "blog/**"
+      - "docs/**"
+      - "studio/**"
+      - "website/**"
+      - "packages/obsei/src/obsei/serve.py"
+      - "packages/obsei/src/obsei/studio.py"
+      - "packages/obsei/src/obsei/studio_static/**"
+      - "packages/obsei/tests/test_studio_browser.py"
+
+permissions:
+  contents: read
+
+env:
+  UV_VERSION: "0.12.23"
+
+jobs:
+  docs:
+    name: Docs site builds
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+      - run: npm ci
+        working-directory: docs
+      - run: npm run build
+        working-directory: docs
+
+  blog:
+    name: Blog builds without inline styles
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+      - run: npm ci
+        working-directory: blog
+      - run: npm run build
+        working-directory: blog
+      # The CSP (blog/public/_headers) has style-src 'self', so style attributes are dropped in production.
+      - run: "! grep -rl ' style=\"' dist --include='*.html'"
+        working-directory: blog
+
+  studio:
+    name: Studio bundle is up to date
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+      - run: npm ci
+        working-directory: studio
+      - run: npm run build
+        working-directory: studio
+      - name: Committed bundle matches the TypeScript sources
+        run: git diff --exit-code -- packages/obsei/src/obsei/studio_static
+
+  browser:
+    name: Studio in Chromium (Playwright)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: false
+      - run: uv sync --locked
+      - run: uv run playwright install --with-deps chromium
+      - run: uv run pytest -m browser -v -rs packages/obsei/tests/test_studio_browser.py
+        env:
+          OBSEI_SCREENSHOTS: screenshots
+      - name: Fail if the browser tests were skipped
+        run: test -f screenshots/live-viewer.png
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: studio-screenshots
+          path: screenshots
+          if-no-files-found: ignore

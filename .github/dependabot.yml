@@ -1,0 +1,66 @@
+version: 2
+updates:
+  - package-ecosystem: "uv"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    # Update uv.lock only; minimum versions in pyproject.toml stay as wide as users need.
+    versioning-strategy: lockfile-only
+    cooldown:
+      default-days: 7
+    groups:
+      python-dependencies:
+        patterns: ["*"]
+    ignore:
+      # pydantic pins pydantic-core exactly; bumping it alone breaks the fuzz build
+      - dependency-name: "pydantic-core"
+      # gliner (name redaction) requires transformers<5.17; drop once it allows newer
+      - dependency-name: "transformers"
+        versions: [">=5.17"]
+    commit-message:
+      prefix: "chore(deps)"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    cooldown:
+      default-days: 7
+    groups:
+      github-actions:
+        patterns: ["*"]
+    commit-message:
+      prefix: "ci"
+
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: "chore(docker)"
+
+  - package-ecosystem: "npm"
+    directory: "/docs"
+    schedule:
+      interval: "monthly"
+    cooldown:
+      default-days: 7
+    groups:
+      docs:
+        patterns: ["*"]
+    commit-message:
+      prefix: "docs(deps)"
+
+  - package-ecosystem: "npm"
+    directory: "/studio"
+    schedule:
+      interval: "monthly"
+    cooldown:
+      default-days: 7
+    groups:
+      studio:
+        patterns: ["*"]
+    commit-message:
+      prefix: "chore(studio)"

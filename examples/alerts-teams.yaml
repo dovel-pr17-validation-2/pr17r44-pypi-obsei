@@ -1,0 +1,59 @@
+# yaml-language-server: $schema=https://docs.obsei.com/schema/obsei.schema.json
+# Negative App Store and Google Play reviews posted to a Microsoft Teams channel, plus one card
+# when a theme spikes and a weekly digest.
+#
+#   pip install "obsei[google]" obsei-teams
+#   export TEAMS_WEBHOOK_URL=...     # from the channel's Workflows "webhook request" template
+#   obsei init                       # once: writes the store key to .obsei/secrets.env
+#   obsei serve --config alerts-teams.yaml
+#
+# Reviews are redacted before they reach Teams. Spike alerts need themes, so themes.auto updates
+# them after each run; themes from fewer than 5 people are never reported. Teams is a public host, so the egress policy
+# below allows only the Power Automate webhook hosts.
+version: 1
+
+plugins: [teams]
+
+egress:
+  mode: private
+  allowed_hosts: [logic.azure.com, environment.api.powerplatform.com]
+
+themes:
+  auto: true
+
+llms:
+  default:
+    base_url: http://localhost:11434/v1
+    model: qwen3:8b
+
+pipelines:
+  - name: review-alerts
+    every_minutes: 30
+    sources:
+      - key: ios
+        type: appstore
+        config: {app_id: "284882215", countries: [us, gb, de]}
+      - key: android
+        type: playstore
+        config: {package_name: com.example.app, credentials_file: play-sa.json}
+    enrichers:
+      - type: classify
+        config: {llm: default}
+    sinks:
+      - type: teams
+        config:
+          title: Negative app reviews
+          when: {classify.sentiment: [negative]}
+          max_rating: 2
+          max_records: 10
+
+alerts:
+  - name: review-spikes
+    kind: theme_spike
+    owner: Mobile team
+    to:
+      - type: teams
+  - name: weekly-digest
+    kind: digest
+    to:
+      - type: teams

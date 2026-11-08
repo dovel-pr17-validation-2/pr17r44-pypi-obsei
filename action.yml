@@ -1,0 +1,40 @@
+name: obsei
+description: Run obsei feedback pipelines (fetch, redact, classify, deliver) on a schedule.
+author: obsei
+branding:
+  icon: message-square
+  color: purple
+inputs:
+  config:
+    description: Path to obsei.yaml.
+    default: obsei.yaml
+  pipeline:
+    description: Pipeline to run (default all).
+    default: ""
+  version:
+    description: obsei version to install (a PEP 440 specifier).
+    default: ">=1.0"
+  extras:
+    description: Optional extras, e.g. "google,apple".
+    default: ""
+runs:
+  using: composite
+  steps:
+    - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+      with:
+        enable-cache: false
+    - name: Run obsei
+      shell: bash
+      env:
+        OBSEI_CONFIG: ${{ inputs.config }}
+        OBSEI_PIPELINE: ${{ inputs.pipeline }}
+        OBSEI_SPEC: ${{ inputs.version }}
+        OBSEI_EXTRAS: ${{ inputs.extras }}
+      run: |
+        package="obsei${OBSEI_EXTRAS:+[$OBSEI_EXTRAS]}${OBSEI_SPEC:->=1.0}"
+        export OBSEI_DUCKDB_EXTENSIONS="$RUNNER_TEMP/duckdb-extensions"
+        uvx --from "$package" python -c \
+          "import duckdb, os; duckdb.connect(config={'extension_directory': os.environ['OBSEI_DUCKDB_EXTENSIONS']}).execute('INSTALL httpfs')"
+        args=(run --config "$OBSEI_CONFIG")
+        if [ -n "$OBSEI_PIPELINE" ]; then args+=(--pipeline "$OBSEI_PIPELINE"); fi
+        uvx --from "$package" obsei "${args[@]}"

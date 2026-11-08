@@ -1,0 +1,50 @@
+name: Live checks
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "23 5 * * 1"
+
+permissions:
+  contents: read
+
+env:
+  UV_VERSION: "0.12.23"
+
+jobs:
+  connectors:
+    name: Connectors against live endpoints
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: false
+      - run: uv sync --locked
+      - run: uv run pytest packages/obsei/tests/live -v -rs
+        env:
+          OBSEI_LIVE: "1"
+          OBSEI_LIVE_SLACK_WEBHOOK: ${{ secrets.OBSEI_LIVE_SLACK_WEBHOOK }}
+          OBSEI_LIVE_LINEAR_API_KEY: ${{ secrets.OBSEI_LIVE_LINEAR_API_KEY }}
+          OBSEI_LIVE_LINEAR_TEAM_ID: ${{ secrets.OBSEI_LIVE_LINEAR_TEAM_ID }}
+
+  models:
+    name: Local models (GLiNER names, multilingual embeddings, classifier)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: false
+      - run: uv sync --locked --all-extras
+      - run: uv run pytest packages/obsei/tests/test_names.py packages/obsei/tests/test_local_embed.py -v -rs
+        env:
+          OBSEI_LIVE: "1"
+      - run: uv run obsei models download --classifier MoritzLaurer/bge-m3-zeroshot-v2.0
+      - run: uv run obsei eval --demo --min-accuracy 0.75

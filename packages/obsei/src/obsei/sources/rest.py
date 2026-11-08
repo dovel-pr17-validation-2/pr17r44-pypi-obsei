@@ -1,0 +1,178 @@
+"""Declarative REST source for any JSON API: helpdesks, survey tools, internal services."""
+
+from __future__ import annotations
+
+import os
+from collections.abc import Iterator
+from datetime import UTC, datetime
+from typing import ClassVar, Literal
+
+import httpx
+from pydantic import BaseModel, ConfigDict, Field, JsonValue
+
+from obsei.core.context import Context, origin
+from obsei.core.plugin import SECRET
+from obsei.core.protocols import Cursor
+from obsei.core.record import Record
+from obsei.sources._common import FieldMap, TextFormat, as_text, lookup, map_item
+
+Pagination = Literal["none", "page", "offset", "link", "next_url", "cursor"]
+
+
+class RestConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    url: str = Field(description="Endpoint that returns the items.")
+    instance: str = Field(default="default", description="Name stored with each record.")
+    method: Literal["GET", "POST"] = Field(default="GET", description="GET or POST.")
+    params: dict[str, str | int] = Field(default_factory=dict, description="Query parameters.")
+    body: dict[str, JsonValue] | None = Field(default=None, description="JSON body for POST.")
+    headers: dict[str, str] = Field(
+        default_factory=dict, description="Extra headers; put credentials in secret_headers."
+    )
+    secret_headers: dict[str, str] = Field(
+        default_factory=dict, description="Header name to environment variable holding its value."
+    )
+    bearer_token_env: str | None = Field(
+        default=None,
+        description="Environment variable with a bearer token.",
+        json_schema_extra=SECRET,
+    )
+    items_path: str | None = Field(
+        default=None, description="Dotted path to the list of items; default: the response itself."
+    )
+    fields: FieldMap = Field(
+        default_factory=FieldMap,
+        description="Which fields hold the text, id, date, rating and other values.",
+    )
+    text_format: TextFormat = Field(
+        default="plain", description="'html' converts mapped text from HTML (Mastodon, forums)."
+    )
+    pagination: Pagination = Field(
+        default="none", description="none, page, offset, link (Link header), next_url or cursor."
+    )
+    page_param: str = Field(
+        default="page", description="Query parameter for the page number or offset."
+    )
+    page_start: int = Field(default=1, description="First page number.")
+    page_size_param: str | None = Field(
+        default=None, description="Query parameter for the page size."
+    )
+    page_size: int = Field(default=100, description="Items per page.")
+    next_path: str | None = Field(
+        default=None, description="Path to the next URL (next_url) or token (cursor)."
+    )
+    cursor_param: str = Field(
+        default="cursor", description="Query parameter that receives the cursor token."
+    )
+    since_param: str | None = Field(
+        default=None, description="Query parameter that receives the newest timestamp seen."
+    )
+    max_pages: int = Field(default=50, ge=1, description="Most pages read per run.")
+
+
+class RestError(RuntimeError):
+    pass
+
+
+def _env(name: str) -> str:
+    value = os.environ.get(name)
+    if not value:
+        raise RestError(f"{name} is not set")
+    return value
+
+
+def _join(response: httpx.Response, url: str | None) -> str | None:
+    return str(response.url.join(url)) if url else None
+
+
+class RestSource:
+    name: ClassVar[str] = "rest"
+
+    def __init__(self, config: RestConfig, ctx: Context) -> None:
+        self.config = config
+        self.ctx = ctx
+
+    def _headers(self, url: str) -> dict[str, str]:
+        """Credentials go only to the configured origin, never to hosts named by pagination."""
+        headers = dict(self.config.headers)
+        if origin(url) != origin(self.config.url):
+            return headers
+        headers.update({h: _env(env) for h, env in self.config.secret_headers.items()})
+        if self.config.bearer_token_env:
+            headers["Authorization"] = f"Bearer {_env(self.config.bearer_token_env)}"
+        return headers
+
+    def _request(self, url: str, params: dict[str, str | int]) -> httpx.Response:
+        response = self.ctx.http.request(
+            self.config.method,
+            url,
+            params=params or None,
+            json=self.config.body,
+            headers=self._headers(url),
+        )
+        if response.is_error:
+            raise RestError(f"{self.config.method} {url} returned {response.status_code}")
+        return response
+
+    def _items(self, payload: JsonValue) -> list[JsonValue]:
+        items = lookup(payload, self.config.items_path) if self.config.items_path else payload
+        if not isinstance(items, list):
+            raise RestError(f"expected a list at {self.config.items_path or 'the top level'}")
+        return items
+
+    def _pages(self, since: str | None) -> Iterator[list[JsonValue]]:
+        c = self.config
+        params: dict[str, str | int] = dict(c.params)
+        if c.since_param and since:
+            params[c.since_param] = since
+        if c.page_size_param:
+            params[c.page_size_param] = c.page_size
+        url: str | None = c.url
+        page = c.page_start
+        for _ in range(c.max_pages):
+            if url is None:
+                return
+            if c.pagination == "page":
+                params[c.page_param] = page
+            elif c.pagination == "offset":
+                params[c.page_param] = (page - c.page_start) * c.page_size
+            response = self._request(url, params)
+            payload: JsonValue = response.json()
+            items = self._items(payload)
+            yield items
+            if not items or c.pagination == "none":
+                return
+            page += 1
+            if c.pagination == "link":
+                url = _join(response, response.links.get("next", {}).get("url"))
+                params = {}
+            elif c.pagination == "next_url":
+                url = _join(response, as_text(lookup(payload, c.next_path or "next")))
+                params = {}
+            elif c.pagination == "cursor":
+                token = as_text(lookup(payload, c.next_path or "next_cursor"))
+                if token is None:
+                    return
+                params[c.cursor_param] = token
+
+    def fetch(self, cursor: Cursor | None) -> Iterator[tuple[Record, Cursor]]:
+        since = cursor.get("since") if cursor else None
+        newest = since if isinstance(since, str) else None
+        now = datetime.now(UTC)
+        for items in self._pages(newest):
+            for item in items:
+                record = map_item(
+                    item,
+                    self.config.fields,
+                    source_type=self.name,
+                    instance=self.config.instance,
+                    ctx=self.ctx,
+                    default_time=now,
+                    text_format=self.config.text_format,
+                )
+                if record is None:
+                    continue
+                stamp = record.created_at.astimezone(UTC).isoformat()
+                newest = max(newest, stamp) if newest else stamp
+                yield record, {"since": newest}

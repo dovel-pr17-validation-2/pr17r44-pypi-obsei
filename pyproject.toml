@@ -1,0 +1,69 @@
+# Workspace root (virtual): holds shared tooling config only.
+# The installable package lives in packages/obsei.
+
+[tool.uv]
+required-version = ">=0.12"
+
+[tool.uv.workspace]
+members = ["packages/*", "plugins/obsei-*"]
+
+[tool.uv.sources]
+obsei = { workspace = true }
+obsei-reddit = { workspace = true }
+obsei-teams = { workspace = true }
+obsei-typeform = { workspace = true }
+
+[dependency-groups]
+dev = [
+    "obsei[apple,google,notify,sql]",
+    "obsei-reddit",
+    "obsei-teams",
+    "obsei-typeform",
+    "mypy==2.4.0",
+    "pytest==9.1.1",
+    "pytest-cov==7.1.0",
+    "ruff==0.16.10",
+    "types-pyyaml==6.0.12.20260906",
+    "types-defusedxml==0.7.0.20260504",
+    "playwright==1.63.0",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["packages/obsei/src", "packages/obsei/tests", "plugins/*/src"]
+
+[tool.ruff.format]
+exclude = ["*.md"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF", "S", "PT", "C4", "PL"]
+ignore = ["PLR0913"]
+
+[tool.ruff.lint.per-file-ignores]
+"{packages,plugins}/*/tests/**" = ["S101", "S105", "S106", "PLR2004", "RUF001"]
+"packages/obsei/src/obsei/privacy/redact.py" = ["RUF001"]
+"packages/obsei/src/obsei/cli.py" = ["PLR0917"]
+"packages/obsei/src/obsei/mcp_server.py" = ["PLR0917"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+plugins = ["pydantic.mypy"]
+files = ["packages/obsei/src", "packages/obsei/tests", "plugins/obsei-reddit/src", "plugins/obsei-reddit/tests", "plugins/obsei-teams/src", "plugins/obsei-teams/tests", "plugins/obsei-typeform/src", "plugins/obsei-typeform/tests", "plugins/template/src", "plugins/template/tests"]
+mypy_path = "packages/obsei/src:plugins/template/src"
+exclude = ["packages/obsei/src/obsei/templates/"]
+
+[[tool.mypy.overrides]]
+module = ["fastembed", "gliner", "gliner2", "huggingface_hub", "transformers"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["packages/obsei/tests", "plugins"]
+pythonpath = ["plugins/template/src"]
+addopts = "-ra --strict-markers"
+markers = ["browser: Studio in Chromium via Playwright (skipped when it is not installed)"]
+
+[tool.coverage.run]
+source = ["obsei"]
+branch = true

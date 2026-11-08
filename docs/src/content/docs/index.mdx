@@ -1,0 +1,63 @@
+---
+title: obsei
+description: Open source, privacy-first Voice of Customer analytics. A self-hosted alternative to Enterpret and Unwrap that strips PII from feedback before any LLM sees it.
+template: splash
+hero:
+  title: Know what customers are saying. Keep what they said private.
+  tagline: The open source, self-hosted alternative to Enterpret and Unwrap. obsei reads reviews, tickets, calls and surveys in many languages and strips personal data before any model sees it. Your AI agents can query it over MCP.
+  image:
+    light: ../../assets/logo-light.svg
+    dark: ../../assets/logo-dark.svg
+    alt: obsei logo
+  actions:
+    - text: Quickstart
+      link: /quickstart/
+      icon: right-arrow
+    - text: Live demo
+      link: /demo/
+      variant: secondary
+    - text: GitHub
+      link: https://github.com/obsei/obsei
+      icon: github
+      variant: minimal
+---
+
+import { Card, CardGrid, LinkCard } from "@astrojs/starlight/components";
+import Pipeline from "../../components/Pipeline.astro";
+
+## How it works
+
+<Pipeline />
+
+Everything inside the dashed box runs on your machines. Read [how obsei works](/how-it-works/) for
+what each step does and who can see what.
+
+## Why obsei
+
+<CardGrid>
+  <Card title="Private by design" icon="approve-check">
+    Redaction at ingest, pseudonymous authors, an encrypted database, model and sink traffic air-gapped by default.
+  </Card>
+  <Card title="Bring your own" icon="puzzle">
+    Your sources, your keys and your model: a classifier that runs inside obsei by default, a small
+    decision model, or any OpenAI-compatible model from Ollama to Azure OpenAI.
+  </Card>
+  <Card title="AI-native" icon="rocket">
+    An MCP server: results carry redacted quotes and record ids, never identities, and what agents propose waits for your approval.
+  </Card>
+  <Card title="Many languages" icon="translate">
+    Classified and quoted in its own language. With `obsei[embeddings]`, the same issue is grouped
+    into one theme across languages.
+  </Card>
+</CardGrid>
+
+## Start here
+
+<CardGrid>
+  <LinkCard title="Quickstart" description="Install, run the ten-language sample and ask your first question." href="/quickstart/" />
+  <LinkCard title="How it works" description="The pipeline, the trust boundary and who sees what." href="/how-it-works/" />
+  <LinkCard title="Sources and sinks" description="Every built-in connector and how to map your own data." href="/guides/sources/" />
+  <LinkCard title="Privacy controls" description="Redaction by region, pseudonyms, erasure, retention and audit." href="/privacy/overview/" />
+  <LinkCard title="MCP and agents" description="Connect Claude, ChatGPT, Cursor and your own agents." href="/guides/mcp/" />
+  <LinkCard title="Server and access" description="Webhooks, scheduling, Studio, SSO and roles." href="/guides/serve/" />
+</CardGrid>
